@@ -84,9 +84,9 @@ async fn get_resource(State(v_file): State<SharedState>, Path(file_name): Path<S
             StatusCode::NOT_FOUND.into_response()
         }
         Some(video_state_lock) => {
-            let sender =  {
+            let (sender, content_type) =  {
                 let video_f_lock = video_state_lock.read().unwrap();
-                video_f_lock.tx.is_some()
+                (video_f_lock.tx.is_some(), video_f_lock.content_type.clone())
             };
             if sender { // Currently sending chunks
                 let (byte_vec, mut receiver) = {
@@ -131,6 +131,7 @@ async fn get_resource(State(v_file): State<SharedState>, Path(file_name): Path<S
                 };
                 Response::builder()
                     .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, content_type)
                     .header(TRANSFER_ENCODING, "chunked") // not needed in axum
                     .body(Body::from_stream(s))
                     .unwrap()
@@ -148,6 +149,7 @@ async fn get_resource(State(v_file): State<SharedState>, Path(file_name): Path<S
 
                 Response::builder()
                     .status(StatusCode::OK)
+                    .header(CONTENT_TYPE, content_type)
                     .header(TRANSFER_ENCODING, "chunked")// not needed in axum
                     .body(Body::from_stream(s))
                     .unwrap()

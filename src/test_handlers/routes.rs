@@ -1,4 +1,4 @@
-use axum::extract::{Path, State};
+use axum::extract::{Path, Query, State};
 use axum::http::header::TRANSFER_ENCODING;
 use axum::http::StatusCode;
 use axum::Router;
@@ -6,12 +6,18 @@ use axum::routing::{get};
 use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use reqwest::Url;
+use serde::Deserialize;
 use crate::state::SharedState;
 use crate::utils::LargeChunkReaderStream;
 
 /*
- All test methods assume the file is on your, not sent through the body with the request.
+ All test methods assume the file is on your server, not sent through the body with the request.
  */
+
+#[derive(Deserialize)]
+struct SendTestParams {
+    times: Option<usize>,
+}
 
 
 pub fn get_test_routes() -> Router<SharedState> {
@@ -20,17 +26,16 @@ pub fn get_test_routes() -> Router<SharedState> {
 }
 
 // Testing method, that should we used with associated test POST method
-async fn delete_resource_test(Path(file_name): Path<String>) -> StatusCode {
+async fn delete_resource_test(Path(file_name): Path<String>, Query(params): Query<SendTestParams>) -> StatusCode {
     let base = Url::parse( "http://127.0.0.1:3000/").unwrap();
     let mut futures = FuturesUnordered::new();
-    let times = 1000;
+    let times = params.times.unwrap_or(1000);
     for i in 0..times {
         let file_name_clone = file_name.clone();
         let fin_name = format!("{}-{}", file_name_clone, i);
         let base_clone = base.clone();
 
         futures.push(tokio::spawn(async move {
-            // let mut local_vec: Vec<Bytes> = Vec::new(); // uncomment to load the files, otherwise run out of memory for large files
             let client = reqwest::Client::new();
             let _res = client.delete(base_clone.join(&fin_name).unwrap())
                 .send()
@@ -45,22 +50,22 @@ async fn delete_resource_test(Path(file_name): Path<String>) -> StatusCode {
 }
 
 // Testing endpoint, sends file multiple times as a stream
-async fn send_resource_test(Path(file_name): Path<String>) -> StatusCode {
+async fn send_resource_test(Path(file_name): Path<String>, Query(params): Query<SendTestParams>) -> StatusCode {
 
     let base = Url::parse( "http://127.0.0.1:3000/").unwrap();
     let mut futures = FuturesUnordered::new();
-    let times = 1000;
+    let times = params.times.unwrap_or(1000);
     for i in 0..times {
         let file_name_clone = file_name.clone();
         let fin_name = format!("{}-{}", file_name_clone, i);
         let base_clone = base.clone();
 
         futures.push(tokio::spawn(async move {
-            let ababa = LargeChunkReaderStream::new(&file_name_clone, 4096).await.unwrap(); // Custom file reader
+            let file = LargeChunkReaderStream::new(&file_name_clone, 4096).await.unwrap(); // Custom file reader
             let client = reqwest::Client::new();
             let _res = client.post(base_clone.join(&fin_name).unwrap())
                 .header(TRANSFER_ENCODING, "chunked")
-                .body(reqwest::Body::wrap_stream(ababa))
+                .body(reqwest::Body::wrap_stream(file))
                 .send()
                 .await.unwrap();
 
@@ -73,10 +78,10 @@ async fn send_resource_test(Path(file_name): Path<String>) -> StatusCode {
 }
 
 // Test method to consume immediately consume streams
-async fn receive_resource_test(State(v_file): State<SharedState>, Path(file_name): Path<String>) -> StatusCode {
+async fn receive_resource_test(State(v_file): State<SharedState>, Path(file_name): Path<String>, Query(params): Query<SendTestParams>) -> StatusCode {
     let base = Url::parse("http://127.0.0.1:3000/").unwrap();
     let mut futures = FuturesUnordered::new();
-    let times = 100;
+    let times = params.times.unwrap_or(100);
     for i in 0..times {
         let file_name_clone = format!("{}-{}",file_name.clone(), i);
         let base_clone = base.clone();
