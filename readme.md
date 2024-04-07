@@ -9,7 +9,7 @@ Trie data-structure is used for storage.
 - **Transfer-Encoding: chunked** - Supports streaming video content
 as soon as the first bytes are uploaded to the server.
 - **Managing videos** - Allows uploading, listing, deleting and retrieving using
-RESTful endpoints.
+REST-like endpoints.
 - **In-Memory Storage** - Uses Trie for fast and efficient storage and prefix search.
 - **Concurrent Processing** - Uses Tokio's capabilities to process multiple video streams at once.
 
@@ -19,13 +19,14 @@ RESTful endpoints.
 ### Installation
 1. Clone the repository:
     ```
-    git clone https://http_client_opt.git
+    git clone https://github.com/HollyAssasin/http_server_video.git
     cd http_client_opt
     ```
 2. Build the project:
     ```
    cargo build --release
    ```
+   2.1 For linux you might need OpenSSL installed, for Reqwest to work.
 3. Run the server:
    ```
    cargo run --release
