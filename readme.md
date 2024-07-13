@@ -5,6 +5,8 @@ Utilizes Axum as its framework, providing endpoints for
 uploading, streaming, listing and deleting videos.
 Trie data-structure is used for storage.
 
+Made for CDN77 as a trial task for rust-based position.
+
 ## Features
 - **Transfer-Encoding: chunked** - Supports streaming video content
 as soon as the first bytes are uploaded to the server.
